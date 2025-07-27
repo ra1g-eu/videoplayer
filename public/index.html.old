@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/plyr/3.7.8/plyr.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .video-section {
+            flex: 2;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: #000;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .video-title {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: 300;
+            color: #e0e0e0;
+        }
+
+        .sidebar {
+            flex: 1;
+            background: #2a2a2a;
+            border-left: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            background: #1f1f1f;
+        }
+
+        .sidebar-header h2 {
+            font-size: 18px;
+            font-weight: 500;
+            color: #ffffff;
+        }
+
+        .videos-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .video-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #333;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .video-item:hover {
+            background: #404040;
+            transform: translateY(-1px);
+        }
+
+        .video-item.active {
+            background: #4a5568;
+            border-color: #667eea;
+        }
+
+        .thumbnail {
+            width: 80px;
+            height: 45px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-right: 12px;
+            background: #555;
+            flex-shrink: 0;
+        }
+
+        .thumbnail-placeholder {
+            width: 80px;
+            height: 45px;
+            background: linear-gradient(135deg, #555, #777);
+            border-radius: 4px;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #ccc;
+            flex-shrink: 0;
+        }
+
+        .video-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .video-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #ffffff;
+            word-wrap: break-word;
+            line-height: 1.3;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+            font-size: 16px;
+        }
+
+        .no-videos {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+            font-size: 16px;
+        }
+
+        /* Custom scrollbar */
+        .videos-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .videos-list::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .videos-list::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+
+        .videos-list::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
+
+        /* Plyr customizations */
+        .plyr {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .plyr--video {
+            background: #000;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .video-section {
+                flex: none;
+                height: 60vh;
+            }
+
+            .sidebar {
+                flex: 1;
+                border-left: none;
+                border-top: 1px solid #333;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="video-section">
+        <div class="video-title" id="videoTitle">Select a video to play</div>
+        <div class="video-container">
+            <video id="player" playsinline controls data-plyr-config='{"controls":["play-large","play","progress","current-time","mute","volume","captions","settings","pip","airplay","fullscreen"]}'>
+                <source src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Video Library</h2>
+        </div>
+        <div class="videos-list" id="videosList">
+            <div class="loading">Loading videos...</div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plyr/3.7.8/plyr.polyfilled.min.js"></script>
+<script>
+    let player;
+    let videos = [];
+    let currentVideoIndex = -1;
+
+    // Initialize Plyr
+    function initPlayer() {
+        const video = document.querySelector('#player');
+        player = new Plyr(video, {
+            controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
+            keyboard: { focused: true, global: true }
+        });
+
+        // Auto-play next video when current one ends
+        player.on('ended', () => {
+            playNextVideo();
+        });
+    }
+
+    // Load videos from API
+    async function loadVideos() {
+        try {
+            const response = await fetch('/api/videos');
+            videos = await response.json();
+            renderVideosList();
+        } catch (error) {
+            console.error('Error loading videos:', error);
+            document.getElementById('videosList').innerHTML =
+                '<div class="no-videos">Error loading videos</div>';
+        }
+    }
+
+    // Render videos list
+    function renderVideosList() {
+        const videosList = document.getElementById('videosList');
+
+        if (videos.length === 0) {
+            videosList.innerHTML = '<div class="no-videos">No videos found in /videos/ folder</div>';
+            return;
+        }
+
+        videosList.innerHTML = videos.map((video, index) => `
+                <div class="video-item" onclick="playVideo(${index})" data-index="${index}">
+                    ${video.thumbnail ?
+            `<img src="${video.thumbnail}" alt="${video.name}" class="thumbnail">` :
+            `<div class="thumbnail-placeholder">No Preview</div>`
+        }
+                    <div class="video-info">
+                        <div class="video-name">${video.name}</div>
+                    </div>
+                </div>
+            `).join('');
+    }
+
+    // Play selected video
+    function playVideo(index) {
+        if (index < 0 || index >= videos.length) return;
+
+        currentVideoIndex = index;
+        const video = videos[index];
+
+        // Update active state
+        document.querySelectorAll('.video-item').forEach((item, i) => {
+            item.classList.toggle('active', i === index);
+        });
+
+        // Update video source and title
+        document.getElementById('videoTitle').textContent = video.name;
+        player.source = {
+            type: 'video',
+            sources: [{
+                src: `/videos/${video.filename}`,
+                type: 'video/mp4'
+            }]
+        };
+
+        // Scroll active item into view
+        const activeItem = document.querySelector('.video-item.active');
+        if (activeItem) {
+            activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    // Play next video
+    function playNextVideo() {
+        if (currentVideoIndex < videos.length - 1) {
+            playVideo(currentVideoIndex + 1);
+        }
+    }
+
+    // Play previous video
+    function playPreviousVideo() {
+        if (currentVideoIndex > 0) {
+            playVideo(currentVideoIndex - 1);
+        }
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.target.tagName.toLowerCase() === 'input') return;
+
+        switch(e.key) {
+            case 'ArrowUp':
+                e.preventDefault();
+                playPreviousVideo();
+                break;
+            case 'ArrowDown':
+                e.preventDefault();
+                playNextVideo();
+                break;
+        }
+    });
+
+    // Initialize app
+    document.addEventListener('DOMContentLoaded', () => {
+        initPlayer();
+        loadVideos();
+    });
+</script>
+</body>
+</html>

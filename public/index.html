@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Player</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/plyr/3.7.8/plyr.css" />
+    <link rel="stylesheet" href="assets/plyr.css"/>
     <style>
         * {
             margin: 0;
@@ -26,27 +26,108 @@
         }
 
         .video-section {
-            flex: 2;
+            flex: 3; /* Increased flex for more video space */
             padding: 20px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             background: #000;
         }
 
-        .video-container {
-            position: relative;
+        .video-grid {
+            display: grid;
+            gap: 15px;
+            flex: 1;
             width: 100%;
-            max-width: 800px;
-            margin: 0 auto;
+            height: 100%;
+        }
+
+        .video-grid.single {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr;
+        }
+
+        .video-grid.multi {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr; /* Adjusted for a 2x2 grid */
+        }
+
+        .video-slot {
+            position: relative;
+            background: #111;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid transparent;
+            transition: border-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-slot.empty {
+            border: 2px dashed #333;
+            cursor: pointer;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .video-slot.empty:hover {
+            border-color: #555;
+            color: #888;
+        }
+
+        .video-slot.main-view {
+            grid-column: 1 / -1;
+            grid-row: 1 / span 2; /* Make main video larger in multi-view */
+        }
+
+        .video-slot-header {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            pointer-events: none;
         }
 
         .video-title {
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 24px;
-            font-weight: 300;
-            color: #e0e0e0;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .video-remove {
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 12px;
+            display: none; /* Hide by default */
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            transition: background 0.2s;
+        }
+
+        .video-remove:hover {
+            background: rgba(255, 0, 0, 1);
+        }
+
+        .video-slot video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .sidebar {
@@ -55,6 +136,7 @@
             border-left: 1px solid #333;
             display: flex;
             flex-direction: column;
+            min-width: 350px; /* Minimum width for sidebar */
         }
 
         .sidebar-header {
@@ -67,6 +149,44 @@
             font-size: 18px;
             font-weight: 500;
             color: #ffffff;
+            margin-bottom: 15px;
+        }
+
+        .multi-video-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: #333;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #667eea;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(24px);
         }
 
         .videos-list {
@@ -85,6 +205,7 @@
             cursor: pointer;
             transition: all 0.2s ease;
             border: 2px solid transparent;
+            position: relative;
         }
 
         .video-item:hover {
@@ -132,16 +253,40 @@
             color: #ffffff;
             word-wrap: break-word;
             line-height: 1.3;
+            padding-right: 50px;
         }
 
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #888;
-            font-size: 16px;
+        .video-action {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
         }
 
-        .no-videos {
+        .video-item:hover .video-action {
+            opacity: 1;
+        }
+
+        .video-action:hover {
+            background: #5a6fd8;
+        }
+
+        .video-action:disabled {
+            background: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .loading, .no-videos {
             text-align: center;
             padding: 40px;
             color: #888;
@@ -170,6 +315,7 @@
         .plyr {
             border-radius: 8px;
             overflow: hidden;
+            height: 100%;
         }
 
         .plyr--video {
@@ -183,7 +329,7 @@
 
             .video-section {
                 flex: none;
-                height: 60vh;
+                height: 50vh;
             }
 
             .sidebar {
@@ -191,24 +337,67 @@
                 border-left: none;
                 border-top: 1px solid #333;
             }
+
+            .video-grid.multi {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 1fr 1fr 1fr;
+            }
+
+            .video-slot.main-view {
+                grid-row: auto;
+            }
         }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="video-section">
-        <div class="video-title" id="videoTitle">Select a video to play</div>
-        <div class="video-container">
-            <video id="player" playsinline controls data-plyr-config='{"controls":["play-large","play","progress","current-time","mute","volume","captions","settings","pip","airplay","fullscreen"]}'>
-                <source src="" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
+        <div id="videoGrid" class="video-grid single">
+            <div id="slot0" class="video-slot">
+                <div class="video-slot-header">
+                    <span class="video-title">Select a video to play</span>
+                    <button class="video-remove">X</button>
+                </div>
+                <video playsinline data-plyr-config='{"title": "Main Player"}'>
+                    <source src="" type="video/mp4">
+                </video>
+            </div>
+            <div id="slot1" class="video-slot empty" style="display: none;">
+                <span>Add</span>
+                <div class="video-slot-header">
+                    <span class="video-title"></span>
+                    <button class="video-remove">X</button>
+                </div>
+                <video playsinline data-plyr-config='{"title": "Player 2"}'></video>
+            </div>
+            <div id="slot2" class="video-slot empty" style="display: none;">
+                <span>Ad</span>
+                <div class="video-slot-header">
+                    <span class="video-title"></span>
+                    <button class="video-remove">X</button>
+                </div>
+                <video playsinline data-plyr-config='{"title": "Player 3"}'></video>
+            </div>
+            <div id="slot3" class="video-slot empty" style="display: none;">
+                <span>Add</span>
+                <div class="video-slot-header">
+                    <span class="video-title"></span>
+                    <button class="video-remove">X</button>
+                </div>
+                <video playsinline data-plyr-config='{"title": "Player 4"}'></video>
+            </div>
         </div>
     </div>
 
     <div class="sidebar">
         <div class="sidebar-header">
             <h2>Video Library</h2>
+            <div class="multi-video-toggle">
+                <span>Multi-video mode</span>
+                <div class="toggle-switch" id="multiVideoToggle">
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
         </div>
         <div class="videos-list" id="videosList">
             <div class="loading">Loading videos...</div>
@@ -216,124 +405,336 @@
     </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/plyr/3.7.8/plyr.polyfilled.min.js"></script>
+<script src="assets/plyr.polyfilled.min.js"></script>
 <script>
-    let player;
-    let videos = [];
-    let currentVideoIndex = -1;
-
-    // Initialize Plyr
-    function initPlayer() {
-        const video = document.querySelector('#player');
-        player = new Plyr(video, {
-            controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
-            keyboard: { focused: true, global: true }
-        });
-
-        // Auto-play next video when current one ends
-        player.on('ended', () => {
-            playNextVideo();
-        });
-    }
-
-    // Load videos from API
-    async function loadVideos() {
-        try {
-            const response = await fetch('/api/videos');
-            videos = await response.json();
-            renderVideosList();
-        } catch (error) {
-            console.error('Error loading videos:', error);
-            document.getElementById('videosList').innerHTML =
-                '<div class="no-videos">Error loading videos</div>';
-        }
-    }
-
-    // Render videos list
-    function renderVideosList() {
-        const videosList = document.getElementById('videosList');
-
-        if (videos.length === 0) {
-            videosList.innerHTML = '<div class="no-videos">No videos found in /videos/ folder</div>';
-            return;
-        }
-
-        videosList.innerHTML = videos.map((video, index) => `
-                <div class="video-item" onclick="playVideo(${index})" data-index="${index}">
-                    ${video.thumbnail ?
-            `<img src="${video.thumbnail}" alt="${video.name}" class="thumbnail">` :
-            `<div class="thumbnail-placeholder">No Preview</div>`
-        }
-                    <div class="video-info">
-                        <div class="video-name">${video.name}</div>
-                    </div>
-                </div>
-            `).join('');
-    }
-
-    // Play selected video
-    function playVideo(index) {
-        if (index < 0 || index >= videos.length) return;
-
-        currentVideoIndex = index;
-        const video = videos[index];
-
-        // Update active state
-        document.querySelectorAll('.video-item').forEach((item, i) => {
-            item.classList.toggle('active', i === index);
-        });
-
-        // Update video source and title
-        document.getElementById('videoTitle').textContent = video.name;
-        player.source = {
-            type: 'video',
-            sources: [{
-                src: `/videos/${video.filename}`,
-                type: 'video/mp4'
-            }]
-        };
-
-        // Scroll active item into view
-        const activeItem = document.querySelector('.video-item.active');
-        if (activeItem) {
-            activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-    }
-
-    // Play next video
-    function playNextVideo() {
-        if (currentVideoIndex < videos.length - 1) {
-            playVideo(currentVideoIndex + 1);
-        }
-    }
-
-    // Play previous video
-    function playPreviousVideo() {
-        if (currentVideoIndex > 0) {
-            playVideo(currentVideoIndex - 1);
-        }
-    }
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-        if (e.target.tagName.toLowerCase() === 'input') return;
-
-        switch(e.key) {
-            case 'ArrowUp':
-                e.preventDefault();
-                playPreviousVideo();
-                break;
-            case 'ArrowDown':
-                e.preventDefault();
-                playNextVideo();
-                break;
-        }
-    });
-
-    // Initialize app
     document.addEventListener('DOMContentLoaded', () => {
-        initPlayer();
+
+        function addVideoToSlot(videoIndex, slotIndex) {
+            if (videoIndex < 0 || videoIndex >= videos.length || slotIndex < 0 || slotIndex >= NUM_SLOTS) return;
+
+            // If another slot already has this video, don't add it again.
+            if (activeSlots.includes(videoIndex)) {
+                console.warn("Video is already in a slot.");
+                return;
+            }
+
+            const video = videos[videoIndex];
+            const slot = document.getElementById(`slot${slotIndex}`);
+            const player = players[slotIndex];
+
+            if (activeSlots[slotIndex] !== null) {
+                // If the target slot is already occupied, find the next available one
+                const nextSlot = findNextAvailableSlot();
+                if (nextSlot === null) {
+                    console.warn("No available slots.");
+                    return;
+                }
+                slotIndex = nextSlot;
+                selectVideoForSlot(slotIndex); // Auto-select the new slot
+            }
+
+            activeSlots[slotIndex] = videoIndex;
+
+            slot.classList.remove('empty');
+            slot.onclick = () => selectVideoForSlot(slotIndex); // Update click to select
+
+            const title = slot.querySelector('.video-title');
+            const removeBtn = slot.querySelector('.video-remove');
+            title.textContent = video.name;
+            removeBtn.style.display = 'flex';
+
+            player.source = {
+                type: 'video',
+                title: video.name,
+                sources: [{src: '/videos/'+video.filename, type: 'video/mp4'}]
+            };
+
+            // Mute all except the first video in any mode
+            player.muted = slotIndex !== 0;
+            player.play();
+
+            renderVideosList();
+
+            // Find the next available slot and select it
+            const nextAvailableSlot = findNextAvailableSlot();
+            if (multiVideoMode && nextAvailableSlot !== null) {
+                selectVideoForSlot(nextAvailableSlot);
+            }
+        }
+
+        const NUM_SLOTS = 4;
+        let players = [];
+        let videos = [];
+        let activeSlots = Array(NUM_SLOTS).fill(null); // Store video index for each slot
+        let multiVideoMode = false;
+        let selectedSlot = 0; // Default to slot 0
+
+        function initPlayers() {
+            for (let i = 0; i < NUM_SLOTS; i++) {
+                const videoElement = document.querySelector(`#slot${i} video`);
+                if (videoElement) {
+                    players[i] = new Plyr(videoElement, {
+                        controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
+                        keyboard: {focused: true, global: false} // Global shortcuts handled manually
+                    });
+                    players[i].on('ended', () => handleVideoEnd(i));
+                }
+            }
+        }
+
+        function handleVideoEnd(slotIndex) {
+            if (!multiVideoMode && slotIndex === 0) {
+                playNextVideo();
+            }
+        }
+
+        function toggleMultiVideoMode() {
+            multiVideoMode = !multiVideoMode;
+            const toggle = document.getElementById('multiVideoToggle');
+            const grid = document.getElementById('videoGrid');
+
+            toggle.classList.toggle('active', multiVideoMode);
+
+            if (multiVideoMode) {
+                grid.className = 'video-grid multi';
+                for (let i = 1; i < NUM_SLOTS; i++) {
+                    document.getElementById(`slot${i}`).style.display = 'flex';
+                }
+                // If a video was playing in single mode, keep it in slot 0
+                if (activeSlots[0] !== null) {
+                    document.getElementById('slot0').classList.remove('main-view');
+                } else {
+                    selectVideoForSlot(0); // If no video, select slot 0
+                }
+            } else {
+                grid.className = 'video-grid single';
+                // Clear all slots except the first one
+                for (let i = 1; i < NUM_SLOTS; i++) {
+                    removeVideo(i, true); // Suppress re-rendering for each
+                    document.getElementById(`slot${i}`).style.display = 'none';
+                }
+                document.getElementById('slot0').classList.add('main-view');
+                selectVideoForSlot(0);
+            }
+            renderVideosList();
+        }
+
+        function selectVideoForSlot(slotIndex) {
+            if (!multiVideoMode && slotIndex !== 0) return;
+            selectedSlot = slotIndex;
+
+            document.querySelectorAll('.video-slot').forEach((slot, i) => {
+                slot.style.borderColor = i === slotIndex ? '#667eea' : 'transparent';
+            });
+
+            renderVideosList();
+        }
+
+        async function loadVideos() {
+            try {
+                // Mock API call
+                //videos = mockVideos;
+                // In a real scenario:
+                const response = await fetch('/api/videos');
+                videos = await response.json();
+                renderVideosList();
+            } catch (error) {
+                console.error('Error loading videos:', error);
+                document.getElementById('videosList').innerHTML = '<div class="no-videos">Error loading videos</div>';
+            }
+        }
+
+        function renderVideosList() {
+            const videosList = document.getElementById('videosList');
+            // Clear the list before re-rendering
+            videosList.innerHTML = '';
+
+            if (videos.length === 0) {
+                const noVideosEl = document.createElement('div');
+                noVideosEl.className = 'no-videos';
+                noVideosEl.textContent = 'No videos found';
+                videosList.appendChild(noVideosEl);
+                return;
+            }
+
+            videos.forEach((video, index) => {
+                // 1. Create the main container
+                const videoItemEl = document.createElement('div');
+                videoItemEl.className = 'video-item';
+
+                // Add an event listener to the main item
+                videoItemEl.addEventListener('click', () => handleVideoItemClick(index));
+
+                let thumbnailEl;
+                // 2. Create the thumbnail
+                if (video.thumbnail) {
+                    thumbnailEl = document.createElement('img');
+                    thumbnailEl.src = video.thumbnail;
+                    thumbnailEl.alt = video.name;
+                    thumbnailEl.className = 'thumbnail';
+                } else {
+                    thumbnailEl = document.createElement('div');
+                    thumbnailEl.className = 'thumbnail-placeholder';
+                    thumbnailEl.textContent = video.name.substring(0, 2); // Simple placeholder
+                }
+
+
+                // 3. Create the info container
+                const videoInfoEl = document.createElement('div');
+                videoInfoEl.className = 'video-info';
+
+                const videoNameEl = document.createElement('div');
+                videoNameEl.className = 'video-name';
+                videoNameEl.textContent = video.name;
+
+                videoInfoEl.appendChild(videoNameEl);
+
+                // 4. Check if video is already in a slot
+                const isVideoInASlot = activeSlots.includes(index);
+                if (isVideoInASlot) {
+                    videoItemEl.classList.add('active');
+                }
+
+                // Append thumbnail and info to the main item
+                videoItemEl.appendChild(thumbnailEl);
+                videoItemEl.appendChild(videoInfoEl);
+
+                // 5. Create the action button if the video is not already active
+                if (!isVideoInASlot) {
+                    const targetSlot = multiVideoMode ? (selectedSlot !== null ? selectedSlot : findNextAvailableSlot()) : 0;
+
+                    if (targetSlot !== null) {
+                        const actionButton = document.createElement('button');
+                        actionButton.className = 'video-action';
+
+                        const actionText = multiVideoMode ? `Add to Slot ${targetSlot + 1}` : 'Play';
+                        actionButton.textContent = actionText;
+
+                        // Add a separate click listener for the button
+                        actionButton.addEventListener('click', (event) => {
+                            // Stop the click from bubbling up to the parent div's listener
+                            event.stopPropagation();
+                            addVideoToSlot(index, targetSlot);
+                        });
+
+                        videoItemEl.appendChild(actionButton);
+                    }
+                }
+
+                // 6. Append the fully constructed item to the list
+                videosList.appendChild(videoItemEl);
+            });
+        }
+
+        function handleVideoItemClick(videoIndex) {
+            if (activeSlots.includes(videoIndex)) return; // Don't do anything if video is already playing
+
+            let targetSlot;
+            if (multiVideoMode) {
+                // If a slot is selected, use it. Otherwise find the next available one.
+                targetSlot = (selectedSlot !== null && activeSlots[selectedSlot] === null) ? selectedSlot : findNextAvailableSlot();
+            } else {
+                targetSlot = 0; // Always use slot 0 in single mode
+            }
+
+            if (targetSlot !== null) {
+                addVideoToSlot(videoIndex, targetSlot);
+            }
+        }
+
+        function findNextAvailableSlot() {
+            for (let i = 0; i < NUM_SLOTS; i++) {
+                if (activeSlots[i] === null) return i;
+            }
+            return null; // No slots available
+        }
+
+        function removeVideo(slotIndex, suppressRender = false) {
+            if (slotIndex < 0 || slotIndex >= NUM_SLOTS || activeSlots[slotIndex] === null) return;
+
+            const slot = document.getElementById(`slot${slotIndex}`);
+            const player = players[slotIndex];
+
+            if (player && player.playing) player.stop();
+
+            player.source = {type: 'video', sources: [{src: '', type: 'video/mp4'}]};
+
+            slot.classList.add('empty');
+            slot.onclick = () => selectVideoForSlot(slotIndex);
+            slot.querySelector('.video-title').textContent = '';
+            slot.querySelector('.video-remove').style.display = 'none';
+
+            activeSlots[slotIndex] = null;
+
+            if (!suppressRender) {
+                renderVideosList();
+            }
+
+            if (multiVideoMode) {
+                selectVideoForSlot(slotIndex); // Reselect the now-empty slot
+            }
+        }
+
+        function playNextVideo() {
+            if (multiVideoMode) return;
+            const currentVideoIndex = activeSlots[0];
+            if (currentVideoIndex === null) return;
+
+            const nextVideoIndex = currentVideoIndex + 1;
+            if (nextVideoIndex < videos.length) {
+                addVideoToSlot(nextVideoIndex, 0);
+            } else {
+                removeVideo(0); // End of playlist
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName.toLowerCase() === 'input' || multiVideoMode) return;
+
+            const currentVideoIndex = activeSlots[0];
+            if (currentVideoIndex === null) return;
+
+            if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                e.preventDefault();
+                if (currentVideoIndex > 0) {
+                    addVideoToSlot(currentVideoIndex - 1, 0);
+                }
+            } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                e.preventDefault();
+                if (currentVideoIndex < videos.length - 1) {
+                    addVideoToSlot(currentVideoIndex + 1, 0);
+                }
+            }
+        });
+
+        function setupSlotListeners() {
+            for (let i = 0; i < NUM_SLOTS; i++) {
+                const slot = document.getElementById(`slot${i}`);
+                const removeBtn = slot.querySelector('.video-remove');
+
+                // Add listener to select the slot when clicked
+                slot.addEventListener('click', () => {
+                    // In multi-mode, clicking a slot selects it.
+                    // In single-mode, it does nothing unless it's empty.
+                    if (multiVideoMode || activeSlots[i] === null) {
+                        selectVideoForSlot(i);
+                    }
+                });
+
+                // Add listener for the remove button
+                removeBtn.addEventListener('click', (event) => {
+                    event.stopPropagation(); // Prevents the slot's click listener from firing
+                    removeVideo(i);
+                });
+            }
+        }
+
+        document.getElementById('multiVideoToggle').addEventListener('click', toggleMultiVideoMode);
+
+        initPlayers();
+        setupSlotListeners();
         loadVideos();
+        selectVideoForSlot(0); // Initially select the main slot
     });
 </script>
 </body>
