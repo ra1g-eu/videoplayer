@@ -26,8 +26,8 @@
         }
 
         .video-section {
-            flex: 3; /* Increased flex for more video space */
-            padding: 20px;
+            flex: 3;
+            padding: 10px; /* Reduced padding */
             display: flex;
             flex-direction: column;
             background: #000;
@@ -35,7 +35,7 @@
 
         .video-grid {
             display: grid;
-            gap: 15px;
+            gap: 5px; /* Reduced gap */
             flex: 1;
             width: 100%;
             height: 100%;
@@ -48,7 +48,7 @@
 
         .video-grid.multi {
             grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr; /* Adjusted for a 2x2 grid */
+            grid-template-rows: 1fr 1fr;
         }
 
         .video-slot {
@@ -77,7 +77,7 @@
 
         .video-slot.main-view {
             grid-column: 1 / -1;
-            grid-row: 1 / span 2; /* Make main video larger in multi-view */
+            grid-row: 1 / span 2;
         }
 
         .video-slot-header {
@@ -113,7 +113,7 @@
             height: 24px;
             cursor: pointer;
             font-size: 12px;
-            display: none; /* Hide by default */
+            display: none;
             align-items: center;
             justify-content: center;
             pointer-events: auto;
@@ -136,7 +136,7 @@
             border-left: 1px solid #333;
             display: flex;
             flex-direction: column;
-            min-width: 350px; /* Minimum width for sidebar */
+            min-width: 350px;
         }
 
         .sidebar-header {
@@ -293,7 +293,6 @@
             font-size: 16px;
         }
 
-        /* Custom scrollbar */
         .videos-list::-webkit-scrollbar {
             width: 8px;
         }
@@ -311,7 +310,6 @@
             background: #666;
         }
 
-        /* Plyr customizations */
         .plyr {
             border-radius: 8px;
             overflow: hidden;
@@ -320,6 +318,24 @@
 
         .plyr--video {
             background: #000;
+        }
+
+        #showSidebar {
+            display: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #5a6fd8;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
         }
 
         @media (max-width: 768px) {
@@ -346,6 +362,10 @@
             .video-slot.main-view {
                 grid-row: auto;
             }
+
+            #showSidebar {
+                display: flex;
+            }
         }
     </style>
 </head>
@@ -363,7 +383,7 @@
                 </video>
             </div>
             <div id="slot1" class="video-slot empty" style="display: none;">
-                <span>Add</span>
+
                 <div class="video-slot-header">
                     <span class="video-title"></span>
                     <button class="video-remove">X</button>
@@ -371,7 +391,6 @@
                 <video playsinline data-plyr-config='{"title": "Player 2"}'></video>
             </div>
             <div id="slot2" class="video-slot empty" style="display: none;">
-                <span>Ad</span>
                 <div class="video-slot-header">
                     <span class="video-title"></span>
                     <button class="video-remove">X</button>
@@ -379,7 +398,6 @@
                 <video playsinline data-plyr-config='{"title": "Player 3"}'></video>
             </div>
             <div id="slot3" class="video-slot empty" style="display: none;">
-                <span>Add</span>
                 <div class="video-slot-header">
                     <span class="video-title"></span>
                     <button class="video-remove">X</button>
@@ -388,7 +406,7 @@
             </div>
         </div>
     </div>
-    <button id="showSidebar" style="width: 24px;height: 24px;border-radius: 50%;background: #5a6fd8;color: white;border: none;cursor: pointer;font-size: 12px;display: flex;align-items: center;justify-content: center; position: fixed; bottom: 20px; right: 20px;">&#9776;</button>
+    <button id="showSidebar">&#9776;</button>
     <div class="sidebar">
         <div class="sidebar-header">
             <div style="display: flex;justify-content: space-between;">
@@ -425,21 +443,21 @@
             const slot = document.getElementById(`slot${slotIndex}`);
             const player = players[slotIndex];
 
+            // If target slot is occupied, find next available slot
             if (activeSlots[slotIndex] !== null) {
-                // If the target slot is already occupied, find the next available one
                 const nextSlot = findNextAvailableSlot();
                 if (nextSlot === null) {
                     console.warn("No available slots.");
                     return;
                 }
                 slotIndex = nextSlot;
-                selectVideoForSlot(slotIndex); // Auto-select the new slot
+                selectVideoForSlot(slotIndex);
             }
 
             activeSlots[slotIndex] = videoIndex;
 
             slot.classList.remove('empty');
-            slot.onclick = () => selectVideoForSlot(slotIndex); // Update click to select
+            slot.onclick = () => selectVideoForSlot(slotIndex);
 
             const title = slot.querySelector('.video-title');
             const removeBtn = slot.querySelector('.video-remove');
@@ -452,14 +470,13 @@
                 sources: [{src: '/videos/'+video.filename, type: 'video/mp4'}]
             };
 
-            // Mute all except the first video in any mode
             player.volume = 0.25;
             player.muted = slotIndex !== 0;
             player.play();
 
             renderVideosList();
 
-            // Find the next available slot and select it
+            // Find and select next available slot
             const nextAvailableSlot = findNextAvailableSlot();
             if (multiVideoMode && nextAvailableSlot !== null) {
                 selectVideoForSlot(nextAvailableSlot);
@@ -469,9 +486,9 @@
         const NUM_SLOTS = 4;
         let players = [];
         let videos = [];
-        let activeSlots = Array(NUM_SLOTS).fill(null); // Store video index for each slot
+        let activeSlots = Array(NUM_SLOTS).fill(null);
         let multiVideoMode = false;
-        let selectedSlot = 0; // Default to slot 0
+        let selectedSlot = 0;
 
         function initPlayers() {
             for (let i = 0; i < NUM_SLOTS; i++) {
@@ -479,16 +496,19 @@
                 if (videoElement) {
                     players[i] = new Plyr(videoElement, {
                         controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
-                        keyboard: {focused: true, global: false} // Global shortcuts handled manually
+                        keyboard: {focused: true, global: false}
                     });
                     players[i].on('ended', () => handleVideoEnd(i));
                 }
             }
+            // Set loop for main player in single mode
+            players[0].loop = true;
         }
 
         function handleVideoEnd(slotIndex) {
-            if (!multiVideoMode && slotIndex === 0) {
-                playNextVideo();
+            // Restart the video when it ends
+            if (players[slotIndex]) {
+                players[slotIndex].restart();
             }
         }
 
@@ -504,17 +524,19 @@
                 for (let i = 1; i < NUM_SLOTS; i++) {
                     document.getElementById(`slot${i}`).style.display = 'flex';
                 }
-                // If a video was playing in single mode, keep it in slot 0
-                if (activeSlots[0] !== null) {
-                    document.getElementById('slot0').classList.remove('main-view');
-                } else {
-                    selectVideoForSlot(0); // If no video, select slot 0
+                // Update loop setting
+                players[0].loop = false;
+
+                // Select first available slot when switching to multi mode
+                const nextSlot = findNextAvailableSlot();
+                if (nextSlot !== null) {
+                    selectVideoForSlot(nextSlot);
                 }
             } else {
                 grid.className = 'video-grid single';
-                // Clear all slots except the first one
+                players[0].loop = true;
                 for (let i = 1; i < NUM_SLOTS; i++) {
-                    removeVideo(i, true); // Suppress re-rendering for each
+                    removeVideo(i, true);
                     document.getElementById(`slot${i}`).style.display = 'none';
                 }
                 document.getElementById('slot0').classList.add('main-view');
@@ -538,7 +560,6 @@
             try {
                 // Mock API call
                 //videos = mockVideos;
-                // In a real scenario:
                 const response = await fetch('/api/videos');
                 videos = await response.json();
                 renderVideosList();
@@ -550,7 +571,6 @@
 
         function renderVideosList() {
             const videosList = document.getElementById('videosList');
-            // Clear the list before re-rendering
             videosList.innerHTML = '';
 
             if (videos.length === 0) {
@@ -562,15 +582,12 @@
             }
 
             videos.forEach((video, index) => {
-                // 1. Create the main container
                 const videoItemEl = document.createElement('div');
                 videoItemEl.className = 'video-item';
 
-                // Add an event listener to the main item
                 videoItemEl.addEventListener('click', () => handleVideoItemClick(index));
 
                 let thumbnailEl;
-                // 2. Create the thumbnail
                 if (video.thumbnail) {
                     thumbnailEl = document.createElement('img');
                     thumbnailEl.src = video.thumbnail;
@@ -579,11 +596,9 @@
                 } else {
                     thumbnailEl = document.createElement('div');
                     thumbnailEl.className = 'thumbnail-placeholder';
-                    thumbnailEl.textContent = video.name.substring(0, 2); // Simple placeholder
+                    thumbnailEl.textContent = video.name.substring(0, 2);
                 }
 
-
-                // 3. Create the info container
                 const videoInfoEl = document.createElement('div');
                 videoInfoEl.className = 'video-info';
 
@@ -593,17 +608,14 @@
 
                 videoInfoEl.appendChild(videoNameEl);
 
-                // 4. Check if video is already in a slot
                 const isVideoInASlot = activeSlots.includes(index);
                 if (isVideoInASlot) {
                     videoItemEl.classList.add('active');
                 }
 
-                // Append thumbnail and info to the main item
                 videoItemEl.appendChild(thumbnailEl);
                 videoItemEl.appendChild(videoInfoEl);
 
-                // 5. Create the action button if the video is not already active
                 if (!isVideoInASlot) {
                     const targetSlot = multiVideoMode ? (selectedSlot !== null ? selectedSlot : findNextAvailableSlot()) : 0;
 
@@ -614,9 +626,7 @@
                         const actionText = multiVideoMode ? `Add to Slot ${targetSlot + 1}` : 'Play';
                         actionButton.textContent = actionText;
 
-                        // Add a separate click listener for the button
                         actionButton.addEventListener('click', (event) => {
-                            // Stop the click from bubbling up to the parent div's listener
                             event.stopPropagation();
                             addVideoToSlot(index, targetSlot);
                         });
@@ -625,20 +635,18 @@
                     }
                 }
 
-                // 6. Append the fully constructed item to the list
                 videosList.appendChild(videoItemEl);
             });
         }
 
         function handleVideoItemClick(videoIndex) {
-            if (activeSlots.includes(videoIndex)) return; // Don't do anything if video is already playing
+            if (activeSlots.includes(videoIndex)) return;
 
             let targetSlot;
             if (multiVideoMode) {
-                // If a slot is selected, use it. Otherwise find the next available one.
                 targetSlot = (selectedSlot !== null && activeSlots[selectedSlot] === null) ? selectedSlot : findNextAvailableSlot();
             } else {
-                targetSlot = 0; // Always use slot 0 in single mode
+                targetSlot = 0;
             }
 
             if (targetSlot !== null) {
@@ -650,7 +658,7 @@
             for (let i = 0; i < NUM_SLOTS; i++) {
                 if (activeSlots[i] === null) return i;
             }
-            return null; // No slots available
+            return null;
         }
 
         function removeVideo(slotIndex, suppressRender = false) {
@@ -675,20 +683,7 @@
             }
 
             if (multiVideoMode) {
-                selectVideoForSlot(slotIndex); // Reselect the now-empty slot
-            }
-        }
-
-        function playNextVideo() {
-            if (multiVideoMode) return;
-            const currentVideoIndex = activeSlots[0];
-            if (currentVideoIndex === null) return;
-
-            const nextVideoIndex = currentVideoIndex + 1;
-            if (nextVideoIndex < videos.length) {
-                addVideoToSlot(nextVideoIndex, 0);
-            } else {
-                removeVideo(0); // End of playlist
+                selectVideoForSlot(slotIndex);
             }
         }
 
@@ -716,28 +711,26 @@
                 const slot = document.getElementById(`slot${i}`);
                 const removeBtn = slot.querySelector('.video-remove');
 
-                // Add listener to select the slot when clicked
                 slot.addEventListener('click', () => {
-                    // In multi-mode, clicking a slot selects it.
-                    // In single-mode, it does nothing unless it's empty.
                     if (multiVideoMode || activeSlots[i] === null) {
                         selectVideoForSlot(i);
                     }
                 });
 
-                // Add listener for the remove button
                 removeBtn.addEventListener('click', (event) => {
-                    event.stopPropagation(); // Prevents the slot's click listener from firing
+                    event.stopPropagation();
                     removeVideo(i);
                 });
             }
 
             document.getElementById('hideSidebar').addEventListener('click', () => {
                 document.querySelector('.sidebar').style.display = 'none';
+                document.getElementById('showSidebar').style.display = 'flex';
             });
 
             document.getElementById('showSidebar').addEventListener('click', () => {
                 document.querySelector('.sidebar').style.display = 'block';
+                document.getElementById('showSidebar').style.display = 'none';
             });
         }
 
@@ -746,7 +739,7 @@
         initPlayers();
         setupSlotListeners();
         loadVideos();
-        selectVideoForSlot(0); // Initially select the main slot
+        selectVideoForSlot(0);
     });
 </script>
 </body>
