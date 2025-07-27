@@ -388,10 +388,13 @@
             </div>
         </div>
     </div>
-
+    <button id="showSidebar" style="width: 24px;height: 24px;border-radius: 50%;background: #5a6fd8;color: white;border: none;cursor: pointer;font-size: 12px;display: flex;align-items: center;justify-content: center; position: fixed; bottom: 20px; right: 20px;">&#9776;</button>
     <div class="sidebar">
         <div class="sidebar-header">
-            <h2>Video Library</h2>
+            <div style="display: flex;justify-content: space-between;">
+                <h2>Video Library</h2>
+                <button id="hideSidebar" style="width: 24px;height: 24px;border-radius: 50%;background: #5a6fd8;color: white;border: none;cursor: pointer;font-size: 12px;display: flex;align-items: center;justify-content: center;">&times;</button>
+            </div>
             <div class="multi-video-toggle">
                 <span>Multi-video mode</span>
                 <div class="toggle-switch" id="multiVideoToggle">
@@ -728,6 +731,14 @@
                     removeVideo(i);
                 });
             }
+
+            document.getElementById('hideSidebar').addEventListener('click', () => {
+                document.querySelector('.sidebar').style.display = 'none';
+            });
+
+            document.getElementById('showSidebar').addEventListener('click', () => {
+                document.querySelector('.sidebar').style.display = 'block';
+            });
         }
 
         document.getElementById('multiVideoToggle').addEventListener('click', toggleMultiVideoMode);
