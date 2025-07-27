@@ -1,0 +1,22 @@
+networks:
+  videoplayernetwork:
+    driver: bridge
+
+services:
+  video-player:
+    build: .
+    ports:
+      - "3020:3020"
+    volumes:
+      - ./videos:/app/videos:ro
+      - thumbnails:/app/public/thumbnails
+      - assets:/app/public/assets:ro
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    container_name: video-player-app
+    networks:
+      - videoplayernetwork
+
+volumes:
+  thumbnails:
